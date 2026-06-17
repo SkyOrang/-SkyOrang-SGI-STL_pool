@@ -294,7 +294,7 @@ namespace xzh
 	template<class T>
 	void PoolDelete(const pool_ptr<T, Array>& pr)
 	{
-		AData<T>* ptr = ((char*)pr.GetData())-sizeof(AData<T>);
+		AData<T>* ptr = (AData<T>*)((char*)pr.GetData())-sizeof(AData<T>);
 		size_t num = ptr->_num;
 		for (int i = 0; i < num; i++)
 		{
@@ -347,11 +347,7 @@ namespace xzh
 	template<class T>
 	struct SData
 	{
-		SData()
-		{
-		
-		}
-		T _d;
+
 	};
 
 
@@ -395,6 +391,7 @@ namespace xzh
 	pool_ptr<T, Special>& pool_ptr<T, Special>::operator=(SData<T>* data)
 	{
 		_d = data;
+		return *this;
 	}
 	template<class T>
 	bool pool_ptr<T, Special>::operator==(const pool_ptr<T, Special>& ptr)
@@ -410,22 +407,24 @@ namespace xzh
 	template<class T>
 	T& pool_ptr<T, Special>::operator*()
 	{
-		return *(_d->_d);
+		T* pr = (T*)_d;
+		return *pr;
 	}
 	template<class T>
 	T* pool_ptr<T, Special>::operator->()
 	{
-		return &(_d->_d);
+		return (T*)_d;
 	}
 	template<class T>
 	SData<T>* pool_ptr<T, Special>::GetData() const
 	{
 		return _d;
 	}
+
 	template<class T>
-	T* pool_ptr<T, Special>::GetPtr() 
+	T* pool_ptr<T, Special>::GetPtr()
 	{
-		return &(_d->_d);
+		return (T*)_d;
 	}
 
 	template<class T>
@@ -440,25 +439,23 @@ namespace xzh
 	template<class T>
 	SData<T>* PoolMalloc(const SData<T>&)
 	{
-		void* re = Malloc(sizeof(SData<T>));
-		SData<T>* pr = (SData<T>*)re;
-		pr->SData::SData();
+		void* re = Malloc(sizeof(T));
+		SData<T>* pr = (SData<T>*)((char*)re + sizeof(SData<T>));
 		return pr;
 	}
 
 	template<class T>
 	void PoolFree(SData<T>* ptr)
 	{
-		ptr->~SData();
-		xzh::Free(ptr, sizeof((*ptr)));
+		xzh::Free(ptr , sizeof(T));
 	}
 
 	template<class T>
 	void PoolFree(pool_ptr<T, Special>& pr)
 	{
-		SData<T>* ptr = pr.GetData();
-		ptr->~SData();
-		xzh::Free(ptr, sizeof((*ptr)));
+		SData<T>* ptr = (SData<T>*)(pr.GetData());
+
+		xzh::Free(ptr, sizeof(T));
 	}
 }
 
