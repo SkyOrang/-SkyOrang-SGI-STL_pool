@@ -49,31 +49,3 @@
 3.提交代码
 
 4.创建拉取请求
-
-#### 成果展示
-在Release条件下：
-
-<img width="692" height="551" alt="image" src="https://github.com/user-attachments/assets/80f0926e-86a1-45f8-a53b-7af34950b03b" />
-
-<img width="692" height="414" alt="image" src="https://github.com/user-attachments/assets/99ae79b7-77f5-4ebc-979e-080a588c2ce7" />
-
-结论：
-
-我为内存池做了全面的性能测试，在 Release 模式下：
-
-核心数据：
-
-8 字节小对象分配释放比系统快 7.4倍
-
-对象生命周期管理（PoolNew/PoolDelete）比系统快 10倍
-
-批量分配接近零开销
-
-100 万次操作后内存增长仅 80 KB左右，无明显泄漏。
-
-这些数据充分证明了内存池在小对象高频分配场景下的性能优势。
-
-测试代码：详见Wiki
-
-
-

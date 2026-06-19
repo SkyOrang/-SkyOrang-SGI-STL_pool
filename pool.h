@@ -1,5 +1,44 @@
 #pragma once
 #include"pool_b.h"
+
+//为STL容器提供内存分配支持
+namespace xzh
+{
+	template <typename T>
+	struct PoolAllocator {
+		using value_type = T;
+
+		PoolAllocator() = default;
+
+		template <typename U>
+		PoolAllocator(const PoolAllocator<U>&) noexcept
+		{
+
+		}
+
+		T* allocate(std::size_t n)
+		{
+
+			return (T*)xzh::Malloc(sizeof(T) * n);
+		}
+
+		void deallocate(T* ptr, std::size_t n) noexcept
+		{
+			xzh::Free(ptr, sizeof(T) * n);
+		}
+	};
+
+	template <typename T, typename U>
+	bool operator==(const PoolAllocator<T>&, const PoolAllocator<U>&) {
+		return true;
+	}
+
+	template <typename T, typename U>
+	bool operator!=(const PoolAllocator<T>&, const PoolAllocator<U>&) {
+		return false;
+	}
+}
+
 //有默认构造函数时可以使用
 namespace xzh
 {
@@ -50,7 +89,7 @@ namespace xzh
 		T* GetPtr();
 
 		
-	private:
+	public:
 		Data<T>* _d;
 	};
 	
@@ -174,6 +213,10 @@ namespace xzh
 	template<class T>
 	struct AData
 	{
+		T* GetPtr()
+		{
+			return (T*)((char*)this + sizeof(AData<T>));
+		}
 		size_t _num;
 	};
 
@@ -234,13 +277,13 @@ namespace xzh
 	template<class T>
 	T& pool_ptr<T, Array>::operator*()
 	{
-		T* pr = (T*)_d;
+		T* pr = _d->GetPtr();
 		return *pr;
 	}
 	template<class T>
 	T* pool_ptr<T, Array>::operator->()
 	{
-		return (T*)_d;
+		return (_d->GetPtr());
 	}
 	template<class T>
 	AData<T>* pool_ptr<T, Array>::GetData() const
@@ -251,7 +294,7 @@ namespace xzh
 	template<class T>
 	T* pool_ptr<T, Array>::GetPtr() 
 	{
-		return (T*)_d;
+		return _d->GetPtr();
 	}
 
 	template<class T>
@@ -275,30 +318,29 @@ namespace xzh
 		}
 
 		((AData<T>*)re)->_num = num;
-		return pr;
+		return (AData<T>*)re;
 	}
 
 	template<class T>
 	void PoolDelete(AData<T>* ptr)
 	{
 		size_t num = ptr->_num;
-		T* p = (T*)(ptr);
+		T* p = (T*)((char*)ptr+sizeof(AData<T>));
 		for (int i = 0; i < num; i++)
 		{
 			(p + i)->~T();
 		}
-		AData<T>* re = (char*)ptr - sizeof(AData<T>);
-		xzh::Free(re, sizeof(T)*num+sizeof(AData<T>));
+		xzh::Free(ptr, sizeof(T)*num+sizeof(AData<T>));
 	}
 
 	template<class T>
 	void PoolDelete(const pool_ptr<T, Array>& pr)
 	{
-		AData<T>* ptr = (AData<T>*)((char*)pr.GetData())-sizeof(AData<T>);
+		AData<T>* ptr = pr.GetData();
 		size_t num = ptr->_num;
 		for (int i = 0; i < num; i++)
 		{
-			((T*)((char*)ptr+sizeof(AData<T>)) + i)->~T();
+			((ptr->GetPtr()) + i)->~T();
 		}
 		xzh::Free(ptr, sizeof(T) * num + sizeof(AData<T>));
 	}
@@ -316,24 +358,23 @@ namespace xzh
 	AData<T>* PoolMalloc(const AData<T>&, size_t num)
 	{
 		void* re = Malloc(sizeof(AData<T>) + sizeof(T) * num);
-		AData<T>* pr = (AData<T>*)((char*)re+sizeof(AData<T>));
 	
 		((AData<T>*)re)->_num = num;
-		return pr;
+		return (AData<T>*)re;
 	}
 
 	template<class T>
 	void PoolFree(AData<T>* ptr)
 	{
-		size_t num = (ptr-1)->_num;
+		size_t num = ptr->_num;
 		
-		xzh::Free((ptr-1), sizeof(T) * num + sizeof(AData<T>));
+		xzh::Free(ptr, sizeof(T) * num + sizeof(AData<T>));
 	}
 
 	template<class T>
 	void PoolFree(pool_ptr<T, Array>& pr)
 	{
-		AData<T>* ptr = (AData<T>*)(pr.GetData())-1;
+		AData<T>* ptr = pr.GetData();
 		size_t num = ptr->_num;
 		
 		xzh::Free(ptr, sizeof(T) * num + sizeof(AData<T>));
